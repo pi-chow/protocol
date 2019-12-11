@@ -1,9 +1,11 @@
 package com.cetiti.iotp.protocol.transport.mqtt.service;
 
 import com.cetiti.iotp.protocol.transport.mqtt.TransportServiceCallback;
+import com.cetiti.iotp.protocol.transport.mqtt.model.CommonRequestPayload;
 import com.cetiti.iotp.protocol.transport.mqtt.model.DeviceInfo;
 import com.cetiti.iotp.protocol.transport.mqtt.model.SessionEventEnum;
 import com.cetiti.iotp.protocol.transport.mqtt.model.SessionMetaData;
+import io.netty.handler.codec.mqtt.MqttPublishMessage;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.UUID;
@@ -39,7 +41,15 @@ public abstract class AbstractTransportService implements TransportService {
         doProcess(deviceInfo, sessionEvent, callback);
     }
 
+    @Override
+    public void process(DeviceInfo deviceInfo, MqttPublishMessage msg, TransportServiceCallback<CommonRequestPayload> callback) {
+        reportActivityInternal(deviceInfo);
+        doProcess(deviceInfo, msg, callback);
+    }
+
     protected abstract void doProcess(DeviceInfo deviceInfo, SessionEventEnum sessionEvent, TransportServiceCallback<Void> callback);
+
+    protected abstract void doProcess(DeviceInfo deviceInfo, MqttPublishMessage msg, TransportServiceCallback<CommonRequestPayload> callback);
 
     @Override
     public void registerAsyncSession(DeviceInfo deviceInfo, SessionMsgListener listener) {

@@ -5,7 +5,6 @@ import com.cetiti.iotp.protocol.transport.mqtt.AsyncCallbackTemplate;
 import com.cetiti.iotp.protocol.transport.mqtt.TransportServiceCallback;
 import com.cetiti.iotp.protocol.transport.mqtt.model.CommonRequestPayload;
 import com.cetiti.iotp.protocol.transport.mqtt.model.SessionEventEnum;
-import com.cetiti.iotp.protocol.transport.mqtt.model.SessionMetaData;
 import com.cetiti.iotp.protocol.transport.mqtt.service.AbstractTransportService;
 import com.cetiti.iotp.protocol.transport.mqtt.model.DeviceInfo;
 import com.google.common.util.concurrent.*;
@@ -24,17 +23,10 @@ import java.util.concurrent.*;
  */
 @Slf4j
 @Service
-public class TransportServiceImpl extends AbstractTransportService {
+public class MqttTransportServiceImpl extends AbstractTransportService {
 
     private ListeningExecutorService service;
 
-
-    @Override
-    protected void doProcess(DeviceInfo deviceInfo, SessionEventEnum sessionEvent, TransportServiceCallback<Void> callback) {
-
-        log.info("[{}] processing [{}]", deviceInfo, sessionEvent);
-
-    }
 
     @Override
     @PostConstruct
@@ -68,18 +60,6 @@ public class TransportServiceImpl extends AbstractTransportService {
                 transportCallbackExecutor);
     }
 
-    @Override
-    public void process(MqttPublishMessage mqttPublishMessage, TransportServiceCallback<CommonRequestPayload> callback) {
-        log.info("processing msg: {}", mqttPublishMessage);
-
-        AsyncCallbackTemplate.withCallback(processPublish(mqttPublishMessage),
-                callback::onSuccess,
-                callback::onError,
-                transportCallbackExecutor);
-
-
-    }
-
     private ListenableFuture<DeviceInfo> processAuthToken(String userName){
 
         log.info("processing authToken [{}]", userName);
@@ -88,8 +68,28 @@ public class TransportServiceImpl extends AbstractTransportService {
 
     }
 
+
+
+    @Override
+    protected void doProcess(DeviceInfo deviceInfo, SessionEventEnum sessionEvent, TransportServiceCallback<Void> callback) {
+
+        log.info("[{}] processing [{}]", deviceInfo, sessionEvent);
+
+    }
+
+    @Override
+    protected void doProcess(DeviceInfo deviceInfo, MqttPublishMessage msg, TransportServiceCallback<CommonRequestPayload> callback) {
+
+        log.info("[{}] processing message", deviceInfo);
+
+        AsyncCallbackTemplate.withCallback(processPublish(msg),
+                callback::onSuccess,
+                callback::onError,
+                transportCallbackExecutor);
+    }
+
     /**
-     * Async 异步查询
+     * Async 异步查询-可用于大数据量查询
      * */
     private ListenableFuture<DeviceInfo> findByIdAsync(String userName){
 

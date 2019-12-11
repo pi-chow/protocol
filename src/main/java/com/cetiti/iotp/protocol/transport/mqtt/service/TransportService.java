@@ -19,7 +19,7 @@ public interface TransportService {
     /**
      * 处理发布信息
      * */
-    void process(MqttPublishMessage mqttPublishMessage, TransportServiceCallback<CommonRequestPayload> callback);
+    void process(DeviceInfo deviceInfo, MqttPublishMessage msg, TransportServiceCallback<CommonRequestPayload> callback);
 
     /**
      * 处理连接

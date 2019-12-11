@@ -24,9 +24,9 @@ public class MqttTransportServerInitializer extends ChannelInitializer<SocketCha
 
         ChannelPipeline pipeline = ch.pipeline();
 
-        //TODO SslHandler
+        //TODO sslHandler
 
-        pipeline.addLast("decoder", new MqttDecoder());
+        pipeline.addLast("decoder", new MqttDecoder(context.getMaxPayloadSize()));
 
         pipeline.addLast("encoder", MqttEncoder.INSTANCE);
 

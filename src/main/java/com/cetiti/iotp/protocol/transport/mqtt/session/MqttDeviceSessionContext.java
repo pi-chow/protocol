@@ -32,7 +32,6 @@ public class MqttDeviceSessionContext {
     @Getter
     private ChannelHandlerContext channel;
 
-
     private AtomicInteger msgIdSeq = new AtomicInteger(0);
 
     public MqttDeviceSessionContext(UUID sessionId, ConcurrentMap<MqttTopicMatcher, Integer> mqttQosMap) {
@@ -48,7 +47,7 @@ public class MqttDeviceSessionContext {
         this.channel = channel;
     }
 
-    public int nextMsgId(AtomicInteger msgIdSeq) {
+    public int nextMsgId() {
         return msgIdSeq.incrementAndGet();
     }
 

@@ -14,7 +14,6 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.codec.mqtt.*;
-import io.netty.util.CharsetUtil;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
 import lombok.extern.slf4j.Slf4j;
@@ -125,7 +124,6 @@ public class MqttTransportHandler extends ChannelInboundHandlerAdapter implement
         log.info("[{}] processing connect msg for client: {}!", sessionId, msg.payload().clientIdentifier());
 
         //TODO SSL handler
-
         processAuthTokenConnect(ctx, msg);
 
     }
@@ -143,7 +141,6 @@ public class MqttTransportHandler extends ChannelInboundHandlerAdapter implement
             ctx.writeAndFlush(createMqttConnAckMsg(MqttConnectReturnCode.CONNECTION_REFUSED_BAD_USER_NAME_OR_PASSWORD));
             ctx.close();
         }else {
-
             transportService.process(msg.payload().userName(), new TransportServiceCallback<DeviceInfo>() {
                 @Override
                 public void onSuccess(DeviceInfo deviceInfo) {
@@ -164,7 +161,7 @@ public class MqttTransportHandler extends ChannelInboundHandlerAdapter implement
     }
 
     /**
-     *设备权限处理响应
+     *设备权限响应
      * @param deviceInfo
      * @param ctx
      * */
@@ -180,13 +177,12 @@ public class MqttTransportHandler extends ChannelInboundHandlerAdapter implement
             transportService.process(deviceInfo, SessionEventEnum.OPEN, null);
             transportService.registerAsyncSession(deviceInfo, this);
             ctx.writeAndFlush(createMqttConnAckMsg(MqttConnectReturnCode.CONNECTION_ACCEPTED));
-            log.info("[{}=>{}] Client connected!", sessionId, deviceInfo);
+            log.info("[{}] Client connected!", sessionId);
         }
 
     }
 
     private void processDisconnect(ChannelHandlerContext ctx) {
-        log.info("[{}:{}] processing disconnect for client", address.getAddress(), address.getPort());
         ctx.close();
         if (sessionContext.isConnected()) {
             transportService.process(deviceInfo, SessionEventEnum.CLOSED, null);
@@ -196,18 +192,15 @@ public class MqttTransportHandler extends ChannelInboundHandlerAdapter implement
     }
 
 
-    public void processPublish(ChannelHandlerContext ctx, MqttPublishMessage msg){
+    private void processPublish(ChannelHandlerContext ctx, MqttPublishMessage msg){
 
         if (!checkConnected(ctx, msg)) {
             return;
         }
-
         String topicName = msg.variableHeader().topicName();
-        int msgId = msg.variableHeader().packetId();
+        int msgId = sessionContext.nextMsgId();
         log.info("[{}] processing publish msg [{}][{}]!", sessionId, topicName, msgId);
-
         processDevicePublish(ctx, msg, topicName, msgId);
-
 
     }
 
@@ -219,14 +212,11 @@ public class MqttTransportHandler extends ChannelInboundHandlerAdapter implement
      * @param msgId
      * @param topicName
      * */
-    public void processDevicePublish(ChannelHandlerContext ctx, MqttPublishMessage msg, String topicName, int msgId){
+    private void processDevicePublish(ChannelHandlerContext ctx, MqttPublishMessage msg, String topicName, int msgId){
 
         try {
-            log.info("[{}] publish device msg [{}][{}][{}]", sessionId, topicName, msgId, msg.payload().toString(CharsetUtil.UTF_8));
-            transportService.process(msg, getPublishCallback(ctx, topicName, msgId));
-
+            transportService.process(deviceInfo, msg, getPublishCallback(ctx, topicName, msgId));
         }catch (Exception e) {
-
             log.warn("[{}] Failed to process publish msg [{}][{}]", sessionId, topicName, msgId, e);
             log.info("[{}] Closing current session due to invalid publish msg [{}][{}]", sessionId, topicName, msgId);
             ctx.close();
@@ -268,7 +258,7 @@ public class MqttTransportHandler extends ChannelInboundHandlerAdapter implement
 
     }
 
-    public void processSubscribe(ChannelHandlerContext ctx, MqttSubscribeMessage msg) {
+    private void processSubscribe(ChannelHandlerContext ctx, MqttSubscribeMessage msg) {
         if(!checkConnected(ctx, msg)){
             return;
         }
@@ -369,7 +359,6 @@ public class MqttTransportHandler extends ChannelInboundHandlerAdapter implement
         }
 
     }
-
 
     @Override
     public void operationComplete(Future<? super Void> future) throws Exception {
