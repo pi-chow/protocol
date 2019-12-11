@@ -1,6 +1,7 @@
 package com.cetiti.iotp.protocol.transport.mqtt.session;
 
 import com.cetiti.iotp.protocol.transport.mqtt.MqttTopicMatcher;
+import com.cetiti.iotp.protocol.transport.mqtt.model.DeviceInfo;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.mqtt.MqttQoS;
 import lombok.Getter;
@@ -17,22 +18,30 @@ import static java.util.stream.Collectors.toList;
  * @author zhouliyu
  * @since 2019-12-05 19:51:40
  */
-public class MqttSessionContext {
-
-    @Getter
-    private final ConcurrentMap<MqttTopicMatcher, Integer> mqttQosMap;
+public class MqttDeviceSessionContext {
 
     @Getter
     private final UUID sessionId;
 
     @Getter
+    private final ConcurrentMap<MqttTopicMatcher, Integer> mqttQosMap;
+
+    @Getter
+    private volatile DeviceInfo deviceInfo;
+
+    @Getter
     private ChannelHandlerContext channel;
+
 
     private AtomicInteger msgIdSeq = new AtomicInteger(0);
 
-    public MqttSessionContext(UUID sessionId, ConcurrentMap<MqttTopicMatcher, Integer> mqttQosMap) {
-        this.mqttQosMap = mqttQosMap;
+    public MqttDeviceSessionContext(UUID sessionId, ConcurrentMap<MqttTopicMatcher, Integer> mqttQosMap) {
         this.sessionId = sessionId;
+        this.mqttQosMap = mqttQosMap;
+    }
+
+    public void setDeviceInfo(DeviceInfo deviceInfo) {
+        this.deviceInfo = deviceInfo;
     }
 
     public void setChannel(ChannelHandlerContext channel) {
@@ -59,7 +68,7 @@ public class MqttSessionContext {
 
     public boolean isConnected(){
 
-        return sessionId != null;
+        return deviceInfo != null;
     }
 
 }

@@ -4,6 +4,7 @@ import lombok.Data;
 import org.springframework.util.StringUtils;
 
 import java.io.Serializable;
+import java.util.UUID;
 
 /**
  * @author zhouliyu
@@ -12,6 +13,8 @@ import java.io.Serializable;
 @Data
 public class DeviceInfo implements Serializable {
     private static final long serialVersionUID = 182333511902309278L;
+
+    private UUID sessionId;
 
     private String deviceModel;
 

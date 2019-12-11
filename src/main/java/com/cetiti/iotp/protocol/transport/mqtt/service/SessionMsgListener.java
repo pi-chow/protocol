@@ -1,6 +1,6 @@
 package com.cetiti.iotp.protocol.transport.mqtt.service;
 
-import com.cetiti.iotp.protocol.transport.mqtt.model.CommonResponsePayload;
+import java.util.UUID;
 
 /**
  * @author zhouliyu
@@ -8,6 +8,6 @@ import com.cetiti.iotp.protocol.transport.mqtt.model.CommonResponsePayload;
  */
 public interface SessionMsgListener {
 
-    void onPublish(CommonResponsePayload commonResponsePayload);
+    void onRemoteSessionCloseCommand(UUID sessionId);
 
 }

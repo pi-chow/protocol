@@ -4,6 +4,8 @@ import com.alibaba.fastjson.JSON;
 import com.cetiti.iotp.protocol.transport.mqtt.AsyncCallbackTemplate;
 import com.cetiti.iotp.protocol.transport.mqtt.TransportServiceCallback;
 import com.cetiti.iotp.protocol.transport.mqtt.model.CommonRequestPayload;
+import com.cetiti.iotp.protocol.transport.mqtt.model.SessionEventEnum;
+import com.cetiti.iotp.protocol.transport.mqtt.model.SessionMetaData;
 import com.cetiti.iotp.protocol.transport.mqtt.service.AbstractTransportService;
 import com.cetiti.iotp.protocol.transport.mqtt.model.DeviceInfo;
 import com.google.common.util.concurrent.*;
@@ -26,6 +28,13 @@ public class TransportServiceImpl extends AbstractTransportService {
 
     private ListeningExecutorService service;
 
+
+    @Override
+    protected void doProcess(DeviceInfo deviceInfo, SessionEventEnum sessionEvent, TransportServiceCallback<Void> callback) {
+
+        log.info("[{}] processing [{}]", deviceInfo, sessionEvent);
+
+    }
 
     @Override
     @PostConstruct
@@ -51,7 +60,7 @@ public class TransportServiceImpl extends AbstractTransportService {
 
 
     @Override
-    public void process(String userName, TransportServiceCallback<String> callback) {
+    public void process(String userName, TransportServiceCallback<DeviceInfo> callback) {
         log.info("processing msg: {}", userName);
         AsyncCallbackTemplate.withCallback(processAuthToken(userName),
                 callback::onSuccess,
@@ -71,11 +80,11 @@ public class TransportServiceImpl extends AbstractTransportService {
 
     }
 
-    private ListenableFuture<String> processAuthToken(String userName){
+    private ListenableFuture<DeviceInfo> processAuthToken(String userName){
 
         log.info("processing authToken [{}]", userName);
 
-        return Futures.transform(findByIdAsync(userName), DeviceInfo::toString);
+        return findByIdAsync(userName);
 
     }
 

@@ -4,9 +4,11 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.cetiti.iotp.protocol.transport.mqtt.model.CommonRequestPayload;
 import com.cetiti.iotp.protocol.transport.mqtt.model.CommonResponsePayload;
+import com.cetiti.iotp.protocol.transport.mqtt.model.DeviceInfo;
+import com.cetiti.iotp.protocol.transport.mqtt.model.SessionEventEnum;
 import com.cetiti.iotp.protocol.transport.mqtt.service.SessionMsgListener;
 import com.cetiti.iotp.protocol.transport.mqtt.service.TransportService;
-import com.cetiti.iotp.protocol.transport.mqtt.session.MqttSessionContext;
+import com.cetiti.iotp.protocol.transport.mqtt.session.MqttDeviceSessionContext;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
@@ -25,12 +27,15 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import static io.netty.handler.codec.mqtt.MqttConnectReturnCode.CONNECTION_REFUSED_NOT_AUTHORIZED;
 import static io.netty.handler.codec.mqtt.MqttMessageType.*;
 import static io.netty.handler.codec.mqtt.MqttQoS.AT_LEAST_ONCE;
 import static io.netty.handler.codec.mqtt.MqttQoS.AT_MOST_ONCE;
 import static io.netty.handler.codec.mqtt.MqttQoS.FAILURE;
 
 /**
+ *
+ * MQTT Handler
  * @author zhouliyu
  * @since 2019-12-05 19:03:04
  */
@@ -43,7 +48,9 @@ public class MqttTransportHandler extends ChannelInboundHandlerAdapter implement
 
     private final ConcurrentMap<MqttTopicMatcher, Integer> mqttQoSMap;
 
-    private volatile MqttSessionContext sessionContext;
+    private volatile MqttDeviceSessionContext sessionContext;
+
+    private volatile DeviceInfo deviceInfo;
 
     private volatile InetSocketAddress address;
 
@@ -52,7 +59,7 @@ public class MqttTransportHandler extends ChannelInboundHandlerAdapter implement
     public MqttTransportHandler(MqttTransportContext context) {
         this.sessionId = UUID.randomUUID();
         this.mqttQoSMap = new ConcurrentHashMap<>();
-        this.sessionContext = new MqttSessionContext(sessionId, mqttQoSMap);
+        this.sessionContext = new MqttDeviceSessionContext(sessionId, mqttQoSMap);
         this.transportService = context.getTransportService();
 
     }
@@ -96,6 +103,7 @@ public class MqttTransportHandler extends ChannelInboundHandlerAdapter implement
             case PINGREQ:
                 if (checkConnected(ctx, msg)) {
                     ctx.writeAndFlush(new MqttMessage(new MqttFixedHeader(PINGRESP, false, AT_MOST_ONCE, false, 0)));
+                    transportService.reportActivity(deviceInfo);
                 }
                 break;
             case DISCONNECT:
@@ -116,12 +124,17 @@ public class MqttTransportHandler extends ChannelInboundHandlerAdapter implement
     private void processConnect(ChannelHandlerContext ctx, MqttConnectMessage msg){
         log.info("[{}] processing connect msg for client: {}!", sessionId, msg.payload().clientIdentifier());
 
-        //TODO SSL
+        //TODO SSL handler
 
         processAuthTokenConnect(ctx, msg);
 
     }
 
+    /**
+     * 设备权限处理
+     * @param ctx
+     * @param msg
+     * */
     private void processAuthTokenConnect(ChannelHandlerContext ctx, MqttConnectMessage msg){
 
         String userName = msg.payload().userName();
@@ -131,11 +144,10 @@ public class MqttTransportHandler extends ChannelInboundHandlerAdapter implement
             ctx.close();
         }else {
 
-            transportService.process(msg.payload().userName(), new TransportServiceCallback<String>() {
+            transportService.process(msg.payload().userName(), new TransportServiceCallback<DeviceInfo>() {
                 @Override
-                public void onSuccess(String deviceInfo) {
-                    ctx.writeAndFlush(createMqttConnAckMsg(MqttConnectReturnCode.CONNECTION_ACCEPTED));
-                    log.info("[{}=>{}] Client connected!", sessionId, deviceInfo);
+                public void onSuccess(DeviceInfo deviceInfo) {
+                    onValidateDeviceResponse(deviceInfo, ctx);
                 }
 
                 @Override
@@ -151,12 +163,34 @@ public class MqttTransportHandler extends ChannelInboundHandlerAdapter implement
 
     }
 
+    /**
+     *设备权限处理响应
+     * @param deviceInfo
+     * @param ctx
+     * */
+    private void onValidateDeviceResponse(DeviceInfo deviceInfo, ChannelHandlerContext ctx){
+
+        if (deviceInfo == null) {
+            ctx.writeAndFlush(createMqttConnAckMsg(CONNECTION_REFUSED_NOT_AUTHORIZED));
+            ctx.close();
+        }else {
+            deviceInfo.setSessionId(sessionId);
+            sessionContext.setDeviceInfo(deviceInfo);
+            this.deviceInfo = deviceInfo;
+            transportService.process(deviceInfo, SessionEventEnum.OPEN, null);
+            transportService.registerAsyncSession(deviceInfo, this);
+            ctx.writeAndFlush(createMqttConnAckMsg(MqttConnectReturnCode.CONNECTION_ACCEPTED));
+            log.info("[{}=>{}] Client connected!", sessionId, deviceInfo);
+        }
+
+    }
+
     private void processDisconnect(ChannelHandlerContext ctx) {
         log.info("[{}:{}] processing disconnect for client", address.getAddress(), address.getPort());
         ctx.close();
         if (sessionContext.isConnected()) {
-            //TODO Remove DeviceInfo
-            ctx.close();
+            transportService.process(deviceInfo, SessionEventEnum.CLOSED, null);
+            transportService.deregisterSession(deviceInfo);
         }
         log.info("[{}] Client disconnected!", sessionId);
     }
@@ -177,40 +211,19 @@ public class MqttTransportHandler extends ChannelInboundHandlerAdapter implement
 
     }
 
+
+    /**
+     *设备发布信息处理
+     * @param ctx
+     * @param msg
+     * @param msgId
+     * @param topicName
+     * */
     public void processDevicePublish(ChannelHandlerContext ctx, MqttPublishMessage msg, String topicName, int msgId){
 
-        //TODO
         try {
             log.info("[{}] publish device msg [{}][{}][{}]", sessionId, topicName, msgId, msg.payload().toString(CharsetUtil.UTF_8));
-
-            String replyTopic = topicName.concat("_reply");
-
-            transportService.process(msg, new TransportServiceCallback<CommonRequestPayload>() {
-                @Override
-                public void onSuccess(CommonRequestPayload commonRequestPayload) {
-
-                    CommonResponsePayload response = new CommonResponsePayload();
-                    response.setId(commonRequestPayload.getId());
-                    response.setCode(200);
-                    response.setMsg("success");
-                    response.setData(new JSONObject());
-
-                    ctx.writeAndFlush(createPublishMsg(replyTopic, msgId, response));
-
-                }
-
-                @Override
-                public void onError(Throwable throwable) {
-
-                    CommonResponsePayload error = new CommonResponsePayload();
-                    error.setCode(400);
-                    error.setMsg("failure");
-                    error.setData(new JSONObject());
-
-                    ctx.writeAndFlush(createPublishMsg(replyTopic, msgId, error));
-
-                }
-            });
+            transportService.process(msg, getPublishCallback(ctx, topicName, msgId));
 
         }catch (Exception e) {
 
@@ -219,6 +232,39 @@ public class MqttTransportHandler extends ChannelInboundHandlerAdapter implement
             ctx.close();
 
         }
+
+    }
+
+    private TransportServiceCallback<CommonRequestPayload> getPublishCallback(ChannelHandlerContext ctx, String topicName, int msgId){
+
+        String replyTopic = topicName.concat("_reply");
+
+        return new TransportServiceCallback<CommonRequestPayload>() {
+            @Override
+            public void onSuccess(CommonRequestPayload commonRequestPayload) {
+
+                CommonResponsePayload<JSONObject> response = new CommonResponsePayload<>();
+                response.setId(commonRequestPayload.getId());
+                response.setCode(200);
+                response.setMsg("success");
+                response.setData(new JSONObject());
+
+                ctx.writeAndFlush(createPublishMsg(replyTopic, msgId, response));
+
+            }
+
+            @Override
+            public void onError(Throwable throwable) {
+
+                CommonResponsePayload<JSONObject> error = new CommonResponsePayload<>();
+                error.setCode(400);
+                error.setMsg("failure");
+                error.setData(new JSONObject());
+
+                ctx.writeAndFlush(createPublishMsg(replyTopic, msgId, error));
+
+            }
+        };
 
     }
 
@@ -260,7 +306,7 @@ public class MqttTransportHandler extends ChannelInboundHandlerAdapter implement
 
             mqttQoSMap.remove(new MqttTopicMatcher(topicName));
 
-            //TODO
+            //TODO 业务逻辑
         }
         ctx.writeAndFlush(createUnSubAckMessage(msg.variableHeader().messageId()));
     }
@@ -327,8 +373,13 @@ public class MqttTransportHandler extends ChannelInboundHandlerAdapter implement
 
     @Override
     public void operationComplete(Future<? super Void> future) throws Exception {
-        log.info("[{}] operationComplete [{}]", sessionId, future);
 
+        if (sessionContext.isConnected()) {
+            transportService.process(deviceInfo, SessionEventEnum.CLOSED, null);
+            transportService.deregisterSession(deviceInfo);
+            sessionContext.setDeviceInfo(null);
+
+        }
     }
 
     @Override
@@ -337,10 +388,9 @@ public class MqttTransportHandler extends ChannelInboundHandlerAdapter implement
         ctx.close();
     }
 
-
     @Override
-    public void onPublish(CommonResponsePayload commonResponsePayload) {
-
-
+    public void onRemoteSessionCloseCommand(UUID sessionId) {
+        log.info("[{}] received the remote command to closed the session!", sessionId);
+        processDisconnect(sessionContext.getChannel());
     }
 }
