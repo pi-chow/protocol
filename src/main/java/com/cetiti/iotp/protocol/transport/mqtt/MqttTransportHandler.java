@@ -236,19 +236,21 @@ public class MqttTransportHandler extends ChannelInboundHandlerAdapter implement
                 CommonResponsePayload<JSONObject> response = new CommonResponsePayload<>();
                 response.setId(commonRequestPayload.getId());
                 response.setCode(200);
-                response.setMsg("success");
+                response.setMessage("success");
                 response.setData(new JSONObject());
+                response.setMethod(commonRequestPayload.getMethod());
 
                 ctx.writeAndFlush(createPublishMsg(replyTopic, msgId, response));
 
             }
 
             @Override
-            public void onError(Throwable throwable) {
+            public void onError(Throwable e) {
 
+                log.info("[{}] Failed to publish msg: ", sessionId, e);
                 CommonResponsePayload<JSONObject> error = new CommonResponsePayload<>();
-                error.setCode(400);
-                error.setMsg("failure");
+                error.setCode(406);
+                error.setMessage(e.getMessage());
                 error.setData(new JSONObject());
 
                 ctx.writeAndFlush(createPublishMsg(replyTopic, msgId, error));

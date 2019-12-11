@@ -26,10 +26,20 @@ public class CommonResponsePayload<T> implements Serializable {
     /**
      * 结果描述
      * */
-    private String msg;
+    private String message;
 
     /**
      * 请求成功返回的数据
      * */
     private T data;
+
+    /**
+     * 方法名
+     * */
+    private String method;
+
+    /**
+     * 版本号
+     * */
+    private String version = "1.0";
 }

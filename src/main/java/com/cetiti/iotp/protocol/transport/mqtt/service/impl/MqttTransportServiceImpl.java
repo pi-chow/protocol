@@ -12,6 +12,7 @@ import io.netty.handler.codec.mqtt.MqttPublishMessage;
 import io.netty.util.CharsetUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -108,25 +109,22 @@ public class MqttTransportServiceImpl extends AbstractTransportService {
 
     private <response> ListenableFuture processPublish(MqttPublishMessage mqttPublishMessage){
 
-        String payload = mqttPublishMessage.payload().toString(CharsetUtil.UTF_8);
-
         SettableFuture<response> future = SettableFuture.create();
 
-        CommonRequestPayload commonRequestPayload = new CommonRequestPayload();
+        String payload = mqttPublishMessage.payload().toString(CharsetUtil.UTF_8);
 
-        try {
-
-            commonRequestPayload = JSON.parseObject(payload, CommonRequestPayload.class);
-
-            future.set((response) commonRequestPayload);
-
-        }catch (Throwable throwable) {
-
-            future.set((response) throwable);
-
+        if (StringUtils.isEmpty(payload)) {
+            future.set((response) new NullPointerException("publish msg"));
+        }else {
+            CommonRequestPayload commonRequestPayload = new CommonRequestPayload();
+            try {
+                commonRequestPayload = JSON.parseObject(payload, CommonRequestPayload.class);
+                future.set((response) commonRequestPayload);
+            }catch (Throwable throwable) {
+                future.set((response) throwable);
+            }
+            log.info("device payload : [{}]", commonRequestPayload.toString());
         }
-
-        log.info("device payload : [{}]", commonRequestPayload.toString());
 
         return future;
 
