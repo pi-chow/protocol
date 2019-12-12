@@ -45,7 +45,6 @@ public class MqttTransportService {
     @Autowired
     private MqttTransportContext context;
 
-
     private Channel serverChannel;
 
     private EventLoopGroup bossGroup;

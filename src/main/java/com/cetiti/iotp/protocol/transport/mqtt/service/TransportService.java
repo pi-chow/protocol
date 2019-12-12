@@ -2,14 +2,15 @@ package com.cetiti.iotp.protocol.transport.mqtt.service;
 import com.cetiti.iotp.protocol.transport.mqtt.TransportServiceCallback;
 import com.cetiti.iotp.protocol.transport.mqtt.model.CommonRequestPayload;
 import com.cetiti.iotp.protocol.transport.mqtt.model.DeviceInfo;
-import com.cetiti.iotp.protocol.transport.mqtt.model.SessionEventEnum;
+import com.cetiti.iotp.protocol.transport.mqtt.enums.SessionEventEnum;
 import io.netty.handler.codec.mqtt.MqttPublishMessage;
 
 /**
+ * 传输层服务
  * @author zhouliyu
  * @since 2019-12-06 13:53:13
  */
-public interface TransportService {
+public interface TransportService<T> {
 
     /**
      * 处理用户信息
@@ -19,7 +20,7 @@ public interface TransportService {
     /**
      * 处理发布信息
      * */
-    void process(DeviceInfo deviceInfo, MqttPublishMessage msg, TransportServiceCallback<CommonRequestPayload> callback);
+    void process(DeviceInfo deviceInfo, T msg, TransportServiceCallback<CommonRequestPayload> callback);
 
     /**
      * 处理连接
@@ -27,7 +28,7 @@ public interface TransportService {
     void process(DeviceInfo deviceInfo, SessionEventEnum sessionEvent, TransportServiceCallback<Void> callback);
 
     /**
-     * 异步注册:长连接需要手动关闭
+     * 异步注册:长连接, 需要手动关闭
      * */
     void registerAsyncSession(DeviceInfo deviceInfo, SessionMsgListener listener);
 

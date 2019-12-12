@@ -5,7 +5,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.cetiti.iotp.protocol.transport.mqtt.model.CommonRequestPayload;
 import com.cetiti.iotp.protocol.transport.mqtt.model.CommonResponsePayload;
 import com.cetiti.iotp.protocol.transport.mqtt.model.DeviceInfo;
-import com.cetiti.iotp.protocol.transport.mqtt.model.SessionEventEnum;
+import com.cetiti.iotp.protocol.transport.mqtt.enums.SessionEventEnum;
 import com.cetiti.iotp.protocol.transport.mqtt.service.SessionMsgListener;
 import com.cetiti.iotp.protocol.transport.mqtt.service.TransportService;
 import com.cetiti.iotp.protocol.transport.mqtt.session.MqttDeviceSessionContext;
@@ -129,7 +129,7 @@ public class MqttTransportHandler extends ChannelInboundHandlerAdapter implement
     }
 
     /**
-     * 设备权限处理
+     * 设备认证
      * @param ctx
      * @param msg
      * */

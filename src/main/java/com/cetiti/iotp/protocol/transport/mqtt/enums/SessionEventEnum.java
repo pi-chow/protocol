@@ -1,4 +1,4 @@
-package com.cetiti.iotp.protocol.transport.mqtt.model;
+package com.cetiti.iotp.protocol.transport.mqtt.enums;
 
 /**
  * @author zhouliyu
@@ -6,8 +6,17 @@ package com.cetiti.iotp.protocol.transport.mqtt.model;
  */
 public enum SessionEventEnum {
 
+    /**
+     * 会话开启
+     * */
     OPEN(0),
+    /**
+     * 会话关闭
+     * */
     CLOSED(1),
+    /**
+     * 未识别会话
+     * */
     UNRECOGNIZED(-1);
 
     private Integer code;

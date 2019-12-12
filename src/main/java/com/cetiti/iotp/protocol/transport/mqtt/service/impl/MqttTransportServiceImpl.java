@@ -4,7 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.cetiti.iotp.protocol.transport.mqtt.AsyncCallbackTemplate;
 import com.cetiti.iotp.protocol.transport.mqtt.TransportServiceCallback;
 import com.cetiti.iotp.protocol.transport.mqtt.model.CommonRequestPayload;
-import com.cetiti.iotp.protocol.transport.mqtt.model.SessionEventEnum;
+import com.cetiti.iotp.protocol.transport.mqtt.enums.SessionEventEnum;
 import com.cetiti.iotp.protocol.transport.mqtt.service.AbstractTransportService;
 import com.cetiti.iotp.protocol.transport.mqtt.model.DeviceInfo;
 import com.google.common.util.concurrent.*;

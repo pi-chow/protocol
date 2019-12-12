@@ -5,7 +5,7 @@ import lombok.Data;
 import java.io.Serializable;
 
 /**
- * Alink协议：响应
+ * 通用响应
  * @author zhouliyu
  * @since 2019-11-21 15:12:30
  */

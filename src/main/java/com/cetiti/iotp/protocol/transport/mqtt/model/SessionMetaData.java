@@ -7,6 +7,7 @@ import java.io.Serializable;
 import java.util.concurrent.ScheduledFuture;
 
 /**
+ * 会话元数据
  * @author zhouliyu
  * @since 2019-12-10 14:18:47
  */

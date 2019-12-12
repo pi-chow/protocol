@@ -7,6 +7,7 @@ import java.io.Serializable;
 import java.util.UUID;
 
 /**
+ * 设备信息
  * @author zhouliyu
  * @since 2019-12-09 11:13:57
  */
@@ -21,26 +22,19 @@ public class DeviceInfo implements Serializable {
     private String deviceSn;
 
     /**
-     * ${deviceSn}&${deviceModel}
+     * 登录用户名：${deviceSn}&${deviceModel}
      * */
     public static DeviceInfo parse(String userName){
-
         if (StringUtils.isEmpty(userName)){
             throw new NullPointerException("userName");
         }
-
         String[] arr = userName.split("&");
-
         if (arr.length != 2) {
             throw new IllegalArgumentException("userName");
         }
-
         DeviceInfo deviceInfo = new DeviceInfo();
-
         deviceInfo.setDeviceSn(arr[0]);
         deviceInfo.setDeviceModel(arr[1]);
-
         return deviceInfo;
-
     }
 }

@@ -5,7 +5,7 @@ import lombok.Data;
 import java.io.Serializable;
 
 /**
- * Alink协议：请求
+ * 通用请求
  * @author zhouliyu
  * @since 2019-11-21 15:04:09
  */
@@ -21,7 +21,7 @@ public class CommonRequestPayload<T> implements Serializable {
     /**
      * 协议版本号
      * */
-    private String version;
+    private String version = "1.0";
 
     /**
      * 请求方法

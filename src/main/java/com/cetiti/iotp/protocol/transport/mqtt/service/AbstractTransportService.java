@@ -3,7 +3,7 @@ package com.cetiti.iotp.protocol.transport.mqtt.service;
 import com.cetiti.iotp.protocol.transport.mqtt.TransportServiceCallback;
 import com.cetiti.iotp.protocol.transport.mqtt.model.CommonRequestPayload;
 import com.cetiti.iotp.protocol.transport.mqtt.model.DeviceInfo;
-import com.cetiti.iotp.protocol.transport.mqtt.model.SessionEventEnum;
+import com.cetiti.iotp.protocol.transport.mqtt.enums.SessionEventEnum;
 import com.cetiti.iotp.protocol.transport.mqtt.model.SessionMetaData;
 import io.netty.handler.codec.mqtt.MqttPublishMessage;
 import lombok.extern.slf4j.Slf4j;
@@ -16,14 +16,17 @@ import java.util.concurrent.*;
  * @since 2019-12-06 17:01:41
  */
 @Slf4j
-public abstract class AbstractTransportService implements TransportService {
+public abstract class AbstractTransportService implements TransportService<MqttPublishMessage> {
 
     /**
      * 回调函数线程
      * */
     protected ExecutorService transportCallbackExecutor;
 
-    protected ScheduledExecutorService schedulerExecutor;
+    /**
+     * 同步注册短连接
+     * */
+    private ScheduledExecutorService schedulerExecutor;
 
     private ConcurrentMap<UUID, SessionMetaData> sessions = new ConcurrentHashMap<>();
 
