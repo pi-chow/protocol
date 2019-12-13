@@ -16,8 +16,10 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * MQTT 客户端服务
@@ -50,13 +52,19 @@ public class MqttClientService {
     private volatile boolean disconnected = false;
 
     @Setter
-    private MqttClientCallback callback;
+    private MqttClientCallback callback = new MqttClientCallbackImpl();
 
     @PostConstruct
     public void init(){
 
         log.info("Starting MQTT Client...");
-        connect(this.host, this.port);
+        Future<MqttConnectResult> connectFuture = connect(this.host, this.port);
+
+        try {
+            log.info("MQTT Client Connected: [{}]", connectFuture.get(500, TimeUnit.MILLISECONDS).toString());
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            connectFuture.cancel(true);
+        }
 
     }
 
@@ -70,6 +78,7 @@ public class MqttClientService {
         this.port = port;
 
         Promise<MqttConnectResult> connectFuture = new DefaultPromise<>(bossGroup.next());
+        context.setConnectFuture(connectFuture);
         Bootstrap b = new Bootstrap();
         b.group(bossGroup)
                 .channel(NioSocketChannel.class)
@@ -100,7 +109,6 @@ public class MqttClientService {
                     if (callback != null) {
 
                         callback.connectionLost(new RuntimeException("Channel is closed"));
-
                     }
 
                     //关闭重连
@@ -145,6 +153,18 @@ public class MqttClientService {
         }
         log.info("MQTT Client stopped!");
 
+    }
+
+    private class MqttClientCallbackImpl implements MqttClientCallback{
+
+        @Override
+        public void connectionLost(Throwable cause) {
+            try {
+                shutdown();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
 }

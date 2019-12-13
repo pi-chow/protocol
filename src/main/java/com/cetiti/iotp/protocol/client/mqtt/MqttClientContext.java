@@ -2,6 +2,7 @@ package com.cetiti.iotp.protocol.client.mqtt;
 
 import io.netty.util.concurrent.Promise;
 import lombok.Getter;
+import lombok.Setter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -17,6 +18,7 @@ public class MqttClientContext {
     private Integer maxPayloadSize;
 
     @Getter
+    @Setter
     private Promise<MqttConnectResult> connectFuture;
 
 }

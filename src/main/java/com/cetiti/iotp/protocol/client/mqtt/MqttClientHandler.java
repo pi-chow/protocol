@@ -6,6 +6,8 @@ import io.netty.handler.codec.mqtt.*;
 import io.netty.util.concurrent.Promise;
 import lombok.extern.slf4j.Slf4j;
 
+import static io.netty.handler.codec.mqtt.MqttConnectReturnCode.CONNECTION_ACCEPTED;
+
 /**
  * @author zhouliyu
  * @since 2019-12-12 17:29:51
@@ -27,7 +29,7 @@ public class MqttClientHandler extends SimpleChannelInboundHandler<MqttMessage> 
         switch (msg.fixedHeader().messageType()) {
 
             case CONNACK:
-                log.info("received connect ack msg : {}", msg.toString());
+                processConnectAck(ctx, (MqttConnAckMessage) msg);
                 break;
             case PUBACK:
                 break;
@@ -72,8 +74,28 @@ public class MqttClientHandler extends SimpleChannelInboundHandler<MqttMessage> 
 
     }
 
+    private void processConnectAck(ChannelHandlerContext ctx, MqttConnAckMessage msg){
+
+        log.info("processing connect ack msg: {}!", msg.variableHeader().connectReturnCode());
+
+        switch (msg.variableHeader().connectReturnCode()) {
+
+            case CONNECTION_ACCEPTED:
+                connectFuture.setSuccess(new MqttConnectResult(true, CONNECTION_ACCEPTED, ctx.channel().closeFuture()));
+                break;
+            default:
+                connectFuture.setSuccess(new MqttConnectResult(false, msg.variableHeader().connectReturnCode(), ctx.channel().closeFuture()));
+                ctx.close();
+                break;
+        }
+
+
+
+    }
+
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         super.exceptionCaught(ctx, cause);
+        ctx.close();
     }
 }
