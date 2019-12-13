@@ -1,0 +1,8 @@
+client:
+  mqtt:
+    bind_host: "${MQTT_CLIENT_BIND_HOST:10.70.7.246}"
+    bind_port: "${MQTT_CLIENT_BIND_PORT:1883}"
+    reconnect: "${MQTT_CLIENT_RECONNECT:true}"
+    reconnectDelay: "${MQTT_CLIENT_RECONNECT_DELAY:3}"
+    netty:
+      max_payload_size: "${NETTY_MAX_PAYLOAD_SIZE:65536}"
